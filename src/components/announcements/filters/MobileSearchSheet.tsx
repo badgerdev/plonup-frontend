@@ -11,7 +11,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { MapPinHouse, Search } from "lucide-react";
-import { useLocationSuggestions } from "@/hooks/announcement/useLocationSuggestions";
+import { useLocationSuggestions, CityOption } from "@/hooks/announcement/useLocationSuggestions";
 
 export function MobileSearchSheet() {
   const router = useRouter();
@@ -23,40 +23,22 @@ export function MobileSearchSheet() {
 
   const { suggestions } = useLocationSuggestions(query);
 
-  const handleSearch = (value?: string) => {
-    const raw = value ?? query;
-    if (!raw.trim()) return;
+  const handleSearch = (city?: CityOption) => {
+    const selected = city ?? suggestions[highlightedIndex];
+    if (!selected) return;
 
-    const loc = value?.trim() || suggestions[0]?.trim() || query.trim();
-
-    // 1. pobierz aktualne paramy
     const params = new URLSearchParams(searchParams.toString());
+    params.set("lat", String(selected.lat));
+    params.set("lng", String(selected.lng));
+    params.set("city", selected.name);
+    params.delete("all");
 
-    // 2. obecna lista lokalizacji
-    const currentLocations = (params.get("location") || "")
-      .split(",")
-      .filter(Boolean);
-
-    // 3. dodaj nowe jeśli go jeszcze nie ma
-    if (!currentLocations.includes(loc)) {
-      currentLocations.push(loc);
-    }
-
-    // 4. zapisz w paramach
-    if (currentLocations.length > 0) {
-      params.set("location", currentLocations.join(","));
-    } else {
-      params.delete("location");
-    }
-
-    // 5. zamknij sheet i nawiguj
     setOpen(false);
     router.push(`/ogloszenia?${params.toString()}`);
   };
 
   return (
     <>
-      {/* Trigger button */}
       <Button
         variant="outline"
         onClick={() => setOpen(true)}
@@ -76,14 +58,8 @@ export function MobileSearchSheet() {
               <MapPinHouse className="w-6 h-6 text-black" />
               Wyszukaj swoje miasto
             </SheetTitle>
-            <p className="text-xs text-muted-foreground font-semibold">
-              <span className="text-sm text-[var(--accent-main)]">*</span>
-              Pracujemy nad mapką i potrzebujemy trochę czasu... <br />
-              <span>Nie zniechęcaj się, szukaj w swojej okolicy!</span>
-            </p>
           </SheetHeader>
 
-          {/* Input */}
           <div className="flex items-center gap-2 mt-2">
             <Input
               autoFocus
@@ -95,18 +71,10 @@ export function MobileSearchSheet() {
                 setHighlightedIndex(0);
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (suggestions[highlightedIndex]) {
-                    handleSearch(suggestions[highlightedIndex]);
-                  } else {
-                    handleSearch();
-                  }
-                }
+                if (e.key === "Enter") handleSearch();
                 if (e.key === "ArrowDown") {
                   e.preventDefault();
-                  setHighlightedIndex((prev) =>
-                    Math.min(prev + 1, suggestions.length - 1)
-                  );
+                  setHighlightedIndex((prev) => Math.min(prev + 1, suggestions.length - 1));
                 }
                 if (e.key === "ArrowUp") {
                   e.preventDefault();
@@ -123,7 +91,6 @@ export function MobileSearchSheet() {
             </Button>
           </div>
 
-          {/* Suggestions */}
           <div className="mt-6 flex-1 overflow-y-auto">
             {suggestions.length > 0 ? (
               <ul className="space-y-2">
@@ -137,14 +104,17 @@ export function MobileSearchSheet() {
                           : "hover:bg-gray-50 text-gray-700"
                       }`}
                     >
-                      {s}
+                      {s.name}
+                      {s.admin1 && (
+                        <span className="ml-1 text-xs text-gray-400">({s.admin1})</span>
+                      )}
                     </button>
                   </li>
                 ))}
               </ul>
             ) : query.length > 2 ? (
               <p className="text-gray-500 text-sm mt-6 px-2">
-                W tej chwili brak ogłoszeń w Twoim mieście, sprawdź okolice!
+                Brak wyników dla &quot;{query}&quot;
               </p>
             ) : (
               <p className="text-gray-400 text-sm mt-6 px-2">

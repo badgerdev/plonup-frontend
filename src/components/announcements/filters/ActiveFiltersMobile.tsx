@@ -15,9 +15,7 @@ export function ActiveFiltersMobile() {
     .split(",")
     .filter(Boolean);
 
-  const locationList = (searchParams.get("location") || "")
-    .split(",")
-    .filter(Boolean);
+  const cityName = searchParams.get("city") ?? "";
 
   const findCategoryByKey = (key: string) =>
     CATEGORIES.find((c) => c.key === key);
@@ -33,14 +31,12 @@ export function ActiveFiltersMobile() {
     router.push(`/ogloszenia?${params.toString()}`);
   };
 
-  const removeLocation = (loc: string) => {
-    const newLocs = locationList.filter((l) => l !== loc);
+  const removeCity = () => {
     const params = new URLSearchParams(searchParams.toString());
-    if (newLocs.length > 0) {
-      params.set("location", newLocs.join(","));
-    } else {
-      params.delete("location");
-    }
+    params.delete("lat");
+    params.delete("lng");
+    params.delete("city");
+    params.delete("admin1");
     router.push(`/ogloszenia?${params.toString()}`);
   };
 
@@ -51,19 +47,16 @@ export function ActiveFiltersMobile() {
   const [showAll, setShowAll] = useState(false);
 
   const allFilters = [
-    ...locationList.map((loc) => ({ type: "location", value: loc })),
+    ...(cityName ? [{ type: "city", value: cityName }] : []),
     ...categoryList.map((cat) => ({ type: "category", value: cat })),
   ];
 
   if (allFilters.length === 0) return null;
 
-  const visibleFilters = showAll
-    ? allFilters
-    : allFilters.slice(0, FILTERS_TO_SHOW);
+  const visibleFilters = showAll ? allFilters : allFilters.slice(0, FILTERS_TO_SHOW);
 
   return (
     <div className="lg:hidden px-3 py-2 rounded-xl shadow-sm border border-gray-200 bg-gray-100">
-      {/* Nagłówek + wyczyść */}
       <div className="flex items-center justify-between mb-8">
         <span className="text-sm font-semibold text-[var(--accent-dark)]">
           Aktywne Filtry:
@@ -77,19 +70,18 @@ export function ActiveFiltersMobile() {
         </button>
       </div>
 
-      {/* Lista filtrów */}
       <div className="flex flex-wrap items-center gap-1">
         {visibleFilters.map((filter) => {
-          if (filter.type === "location") {
+          if (filter.type === "city") {
             return (
               <span
-                key={filter.value}
+                key="city"
                 className="px-2.5 py-2 rounded-full flex items-center gap-1 text-xs font-medium bg-[var(--accent-light)]"
               >
                 <MapPin className="w-3.5 h-3.5 text-[var(--accent-main)]" />
                 {filter.value}
                 <button
-                  onClick={() => removeLocation(filter.value)}
+                  onClick={removeCity}
                   className="ml-2 p-1 hover:cursor-pointer bg-destructive/80 hover:bg-destructive rounded-full text-white"
                 >
                   <X className="w-3 h-3" />
@@ -115,22 +107,17 @@ export function ActiveFiltersMobile() {
             );
           }
         })}
-
-        {/* Pokaż więcej/mniej */}
       </div>
+
       {allFilters.length > FILTERS_TO_SHOW && (
         <button
           onClick={() => setShowAll((prev) => !prev)}
           className="flex items-center gap-1 text-sm text-[var(--muted-foreground)] hover:text-[var(--accent-main)] transition px-2 mt-4"
         >
           {showAll ? (
-            <>
-              Zwiń <ChevronUp className="w-3 h-3" />
-            </>
+            <>Zwiń <ChevronUp className="w-3 h-3" /></>
           ) : (
-            <>
-              Zobacz Wszystkie <ChevronDown className="w-3 h-3" />
-            </>
+            <>Zobacz Wszystkie <ChevronDown className="w-3 h-3" /></>
           )}
         </button>
       )}

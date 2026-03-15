@@ -11,7 +11,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { MapPinHouse, Search } from "lucide-react";
-import { useLocationSuggestions } from "@/hooks/announcement/useLocationSuggestions";
+import { useLocationSuggestions, CityOption } from "@/hooks/announcement/useLocationSuggestions";
 
 export function HeroSearchMobileSheet() {
   const router = useRouter();
@@ -21,12 +21,16 @@ export function HeroSearchMobileSheet() {
 
   const { suggestions } = useLocationSuggestions(query);
 
-  const handleSearch = (value?: string) => {
-    const raw = value ?? query;
-    if (!raw.trim()) return;
-    const loc = value?.trim() || suggestions[0]?.trim() || query.trim();
+  const handleSelectCity = (city: CityOption) => {
     setOpen(false);
-    router.push(`/ogloszenia?location=${encodeURIComponent(loc)}`);
+    router.push(
+      `/ogloszenia?lat=${city.lat}&lng=${city.lng}&city=${encodeURIComponent(city.name)}&radius=50`
+    );
+  };
+
+  const handleSearch = () => {
+    const selected = suggestions[highlightedIndex];
+    if (selected) handleSelectCity(selected);
   };
 
   return (
@@ -69,18 +73,10 @@ export function HeroSearchMobileSheet() {
                 setHighlightedIndex(0);
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (suggestions[highlightedIndex]) {
-                    handleSearch(suggestions[highlightedIndex]);
-                  } else {
-                    handleSearch();
-                  }
-                }
+                if (e.key === "Enter") handleSearch();
                 if (e.key === "ArrowDown") {
                   e.preventDefault();
-                  setHighlightedIndex((prev) =>
-                    Math.min(prev + 1, suggestions.length - 1)
-                  );
+                  setHighlightedIndex((prev) => Math.min(prev + 1, suggestions.length - 1));
                 }
                 if (e.key === "ArrowUp") {
                   e.preventDefault();
@@ -90,35 +86,37 @@ export function HeroSearchMobileSheet() {
               className="flex-1 h-10 text-base"
             />
             <Button
-              onClick={() => handleSearch()}
+              onClick={handleSearch}
               className="h-10 px-4 bg-[var(--accent-main)] hover:bg-[var(--accent-main-hover)] text-white rounded-full"
             >
               <Search />
             </Button>
           </div>
 
-          {/* Sugestie */}
           <div className="mt-6 flex-1 overflow-y-auto">
             {suggestions.length > 0 ? (
               <ul className="space-y-2">
                 {suggestions.slice(0, 10).map((s, i) => (
                   <li key={i}>
                     <button
-                      onClick={() => handleSearch(s)}
+                      onClick={() => handleSelectCity(s)}
                       className={`w-full px-3 py-2 text-left text-sm font-medium transition-colors ${
                         i === highlightedIndex
                           ? "bg-gray-100 text-gray-800 border-l-2 border-[var(--accent-main)]"
                           : "hover:bg-gray-50 text-gray-700"
                       }`}
                     >
-                      {s}
+                      {s.name}
+                      {s.admin1 && (
+                        <span className="ml-1 text-xs text-gray-400">({s.admin1})</span>
+                      )}
                     </button>
                   </li>
                 ))}
               </ul>
             ) : query.length > 2 ? (
               <p className="text-gray-500 text-sm mt-6 px-2">
-                W tej chwili brak ogłoszeń w Twoim mieście, sprawdź okolice!
+                Brak wyników dla &quot;{query}&quot;
               </p>
             ) : (
               <p className="text-gray-400 text-sm mt-6 px-2">

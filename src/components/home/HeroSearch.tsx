@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useLocationSuggestions } from "@/hooks/announcement/useLocationSuggestions";
+import { useLocationSuggestions, CityOption } from "@/hooks/announcement/useLocationSuggestions";
 import { MapPinHouse, Search, SquareArrowOutUpRight } from "lucide-react";
 import { TypingEffect } from "../typing-effect/TypingEffect";
 import { HeroSearchMobileSheet } from "./HeroSearchMobileSheet";
@@ -18,12 +18,15 @@ export function HeroSearch() {
 
   const { suggestions } = useLocationSuggestions(query);
 
-  const handleSearch = (value?: string) => {
-    const raw = value ?? query;
-    if (!raw.trim()) return;
+  const handleSelectCity = (city: CityOption) => {
+    router.push(
+      `/ogloszenia?lat=${city.lat}&lng=${city.lng}&city=${encodeURIComponent(city.name)}&radius=50`
+    );
+  };
 
-    const loc = value?.trim() || suggestions[0]?.trim() || query.trim();
-    router.push(`/ogloszenia?location=${encodeURIComponent(loc)}`);
+  const handleSearch = () => {
+    const selected = suggestions[highlightedIndex];
+    if (selected) handleSelectCity(selected);
   };
 
   return (
@@ -57,18 +60,10 @@ export function HeroSearch() {
               onFocus={() => setIsFocused(true)}
               onBlur={() => setTimeout(() => setIsFocused(false), 150)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (isFocused && suggestions[highlightedIndex]) {
-                    handleSearch(suggestions[highlightedIndex]);
-                  } else {
-                    handleSearch();
-                  }
-                }
+                if (e.key === "Enter") handleSearch();
                 if (e.key === "ArrowDown") {
                   e.preventDefault();
-                  setHighlightedIndex((prev) =>
-                    Math.min(prev + 1, suggestions.length - 1)
-                  );
+                  setHighlightedIndex((prev) => Math.min(prev + 1, suggestions.length - 1));
                 }
                 if (e.key === "ArrowUp") {
                   e.preventDefault();
@@ -90,15 +85,20 @@ export function HeroSearch() {
                             ? "border-l-2 border-[var(--accent-main)] text-gray-700 bg-gray-100"
                             : "border-l-2 border-transparent text-gray-700 hover:text-[var(--accent-main)] hover:cursor-pointer"
                         }`}
-                        onMouseDown={() => handleSearch(s)}
+                        onMouseDown={() => handleSelectCity(s)}
                       >
-                        {s}
+                        {s.name}
+                        {s.admin1 && (
+                          <span className="ml-1 text-xs font-normal text-gray-400">
+                            ({s.admin1})
+                          </span>
+                        )}
                       </button>
                     ))}
                     {suggestions.length > 5 && (
                       <Link
                         href="/ogloszenia"
-                        className="text sm px-4 hover:text-black text-gray-700 select-none mb-2 flex items-center gap-1 w-full bg-gray-100 py-2 justify-center"
+                        className="text-sm px-4 hover:text-black text-gray-700 select-none mb-2 flex items-center gap-1 w-full bg-gray-100 py-2 justify-center"
                       >
                         Zobacz Wszystkie
                         <SquareArrowOutUpRight className="w-4 h-4" />
@@ -111,11 +111,10 @@ export function HeroSearch() {
                   </p>
                 ) : query.length >= 3 ? (
                   <p className="px-3 py-2 text-sm text-gray-500 select-none">
-                    W tej chwili brak ogłoszeń w Twoim mieście, sprawdź okolice!
+                    Brak wyników dla &quot;{query}&quot;
                   </p>
                 ) : null}
 
-                {/* Stały komunikat */}
                 <p className="px-3 py-2 mt-2 text-xs text-muted-foreground font-semibold border-t">
                   <span className="text-sm text-[var(--accent-main)]">*</span>{" "}
                   Pracujemy nad mapką i potrzebujemy trochę czasu... <br />
@@ -126,7 +125,7 @@ export function HeroSearch() {
           </div>
 
           <Button
-            onClick={() => handleSearch()}
+            onClick={handleSearch}
             className="h-10 px-5 text-base bg-[var(--accent-main)] hover:bg-[var(--accent-main-hover)] text-white rounded-full hover:cursor-pointer"
           >
             <Search />

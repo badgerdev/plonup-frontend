@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { useLocationSuggestions } from "@/hooks/announcement/useLocationSuggestions";
+import { useLocationSuggestions, CityOption } from "@/hooks/announcement/useLocationSuggestions";
 import { MapPinHouse, Loader2, Search } from "lucide-react";
 
 import {
@@ -20,52 +20,36 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
-const RADIUS_OPTIONS = [25, 50, 75, 100];
-
 export function SearchBar() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const currentLocations = (searchParams.get("location") || "")
-    .split(",")
-    .filter(Boolean);
-  const currentRadius = searchParams.get("radius") ?? "50";
-
   const [inputValue, setInputValue] = useState("");
   const [popoverOpen, setPopoverOpen] = useState(false);
 
-  const handleRadiusChange = (value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("radius", value);
-    router.push(`/ogloszenia?${params.toString()}`);
-  };
-
   const { suggestions, isLoading } = useLocationSuggestions(inputValue);
 
-  const updateUrl = (newLocations: string[]) => {
+  const cityFromUrl = searchParams.get("city") ?? "";
+  const admin1FromUrl = searchParams.get("admin1") ?? "";
+  const urlLabel = cityFromUrl
+    ? `${cityFromUrl}${admin1FromUrl ? ` (${admin1FromUrl})` : ""}`
+    : "";
+
+  const handleSelectCity = (city: CityOption) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (newLocations.length > 0) {
-      params.set("location", newLocations.join(","));
-    } else {
-      params.delete("location");
-    }
-    router.push(`/ogloszenia?${params.toString()}`);
-  };
-
-  const handleSelectCity = (city: string) => {
-    if (!currentLocations.includes(city)) {
-      const newList = [...currentLocations, city];
-      updateUrl(newList);
-    }
+    params.set("lat", String(city.lat));
+    params.set("lng", String(city.lng));
+    params.set("city", city.name);
+    if (city.admin1) params.set("admin1", city.admin1);
+    else params.delete("admin1");
+    params.delete("all");
     setInputValue("");
-
-    setTimeout(() => {
-      setPopoverOpen(false);
-    }, 100);
+    setTimeout(() => setPopoverOpen(false), 100);
+    router.push(`/ogloszenia?${params.toString()}`);
   };
 
   return (
-    <div className="relative w-full mx-auto flex items-center gap-2">
+    <div className="relative w-full mx-auto">
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -74,7 +58,7 @@ export function SearchBar() {
             className="border-black w-full justify-between text-left text-[var(--text-main)] rounded-full transition-all duration-200 ease-in-out hover:scale-[1.01]"
             onClick={() => setPopoverOpen((prev) => !prev)}
           >
-            {inputValue || "Szukaj miasta"}
+            {inputValue || urlLabel || "Szukaj miasta"}
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin opacity-50 transition-all" />
             ) : (
@@ -90,7 +74,6 @@ export function SearchBar() {
         >
           <Command shouldFilter={false} className="w-full">
             <CommandInput
-              id="mobile-searchbar"
               placeholder="Szukaj miasta..."
               value={inputValue}
               onValueChange={setInputValue}
@@ -98,17 +81,20 @@ export function SearchBar() {
             />
             <CommandList className="max-h-48 overflow-auto">
               {suggestions.length === 0 && !isLoading ? (
-                <CommandEmpty>Brak ogłoszeń w Tym mieście...</CommandEmpty>
+                <CommandEmpty>Brak wyników...</CommandEmpty>
               ) : (
                 <CommandGroup>
-                  {suggestions.map((loc, idx) => (
+                  {suggestions.map((city, idx) => (
                     <CommandItem
                       key={idx}
-                      onSelect={() => handleSelectCity(loc)}
+                      onSelect={() => handleSelectCity(city)}
                       className="cursor-pointer transition-colors duration-150"
                     >
                       <MapPinHouse className="mr-2 h-4 w-4 text-[var(--accent-main)]" />
-                      <span className="text-[var(--text-main)]">{loc}</span>
+                      <span className="text-[var(--text-main)]">{city.name}</span>
+                      {city.admin1 && (
+                        <span className="ml-1 text-xs text-gray-400">({city.admin1})</span>
+                      )}
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -117,18 +103,6 @@ export function SearchBar() {
           </Command>
         </PopoverContent>
       </Popover>
-
-      <select
-        value={currentRadius}
-        onChange={(e) => handleRadiusChange(e.target.value)}
-        className="shrink-0 text-xs border border-gray-300 rounded-full px-3 py-2 bg-white text-[var(--text-main)] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--accent-main)]"
-      >
-        {RADIUS_OPTIONS.map((r) => (
-          <option key={r} value={String(r)}>
-            {r} km
-          </option>
-        ))}
-      </select>
     </div>
   );
 }
