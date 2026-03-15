@@ -9,6 +9,7 @@ type AuthState = {
   setUser: (user: User) => void;
   logoutUser: () => Promise<void>;
   setHydrated: (value: boolean) => void;
+  refreshUser: () => Promise<void>;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -24,6 +25,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     }),
 
   setHydrated: (value) => set({ hydrated: value }),
+
+  refreshUser: async () => {
+    try {
+      const res = await fetch("/api/me", { method: "GET" });
+      const data = await res.json();
+      if (data.isAuthenticated) {
+        set({ user: data.user, isAuthenticated: true, hydrated: true });
+      }
+    } catch (err) {
+      console.error("Błąd odświeżania użytkownika:", err);
+    }
+  },
 
   logoutUser: async () => {
     try {

@@ -14,7 +14,7 @@ export default function AddAnnouncementClientGuard() {
   if (user.is_deleted) {
     return (
       <div className="flex w-full md:justify-center md:items-start">
-        <AccountDeletionBanner />
+        <AccountDeletionBanner user={user} />
       </div>
     );
   }

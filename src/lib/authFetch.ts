@@ -1,4 +1,5 @@
 // src/lib/apiFetch.ts
+import { toast } from "sonner";
 
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
@@ -30,6 +31,24 @@ export async function authFetch(
     ...init,
     credentials: "include",
   });
+
+  if (res.status === 403) {
+    const cloned = res.clone();
+    try {
+      const body = await cloned.text();
+      if (body.includes("ACCOUNT_DELETION_PENDING")) {
+        toast.error(
+          "Ta akcja jest niedostępna — Twoje konto jest w trakcie usuwania"
+        );
+        throw new Error("ACCOUNT_DELETION_PENDING");
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message === "ACCOUNT_DELETION_PENDING") {
+        throw err;
+      }
+    }
+    return res;
+  }
 
   if (res.status !== 401) {
     return res;

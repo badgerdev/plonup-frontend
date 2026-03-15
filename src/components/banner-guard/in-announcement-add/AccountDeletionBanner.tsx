@@ -10,9 +10,36 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { useLogout } from "@/hooks/auth/useLogout";
+import { toast } from "sonner";
+import { useAuthStore } from "@/store/auth-store";
+import { User } from "@/lib/helpers/types";
 
-export function AccountDeletionBanner() {
+type Props = {
+  user: User;
+};
+
+export function AccountDeletionBanner({ user }: Props) {
   const { handleLogout } = useLogout();
+  const { refreshUser } = useAuthStore();
+
+  const handleCancelDeletion = async () => {
+    try {
+      const res = await fetch("/api/account/cancel", { method: "POST" });
+      if (!res.ok) throw new Error("Cancel failed");
+      toast.success("Usuwanie konta zostało anulowane");
+      await refreshUser();
+    } catch {
+      toast.error("Nie udało się anulować usuwania konta");
+    }
+  };
+
+  const formattedDate = user.delete_scheduled_for
+    ? new Date(user.delete_scheduled_for).toLocaleDateString("pl-PL", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
 
   return (
     <Card
@@ -32,6 +59,9 @@ export function AccountDeletionBanner() {
         <CardTitle>Konto w trakcie usuwania</CardTitle>
         <CardDescription>
           Większość funkcji została zablokowana.
+          {formattedDate && (
+            <> Konto zostanie usunięte {formattedDate}.</>
+          )}
         </CardDescription>
       </CardHeader>
 
@@ -39,7 +69,7 @@ export function AccountDeletionBanner() {
         <Button
           size="lg"
           className="bg-orange-600 hover:bg-orange-700 text-white"
-          onClick={() => alert("TODO: anulowanie usuwania konta")}
+          onClick={handleCancelDeletion}
         >
           <Undo2 className="mr-2 h-4 w-4" />
           Anuluj usuwanie
