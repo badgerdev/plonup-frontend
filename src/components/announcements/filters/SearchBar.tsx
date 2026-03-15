@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
+const RADIUS_OPTIONS = [25, 50, 75, 100];
+
 export function SearchBar() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -27,9 +29,16 @@ export function SearchBar() {
   const currentLocations = (searchParams.get("location") || "")
     .split(",")
     .filter(Boolean);
+  const currentRadius = searchParams.get("radius") ?? "50";
 
   const [inputValue, setInputValue] = useState("");
   const [popoverOpen, setPopoverOpen] = useState(false);
+
+  const handleRadiusChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("radius", value);
+    router.push(`/ogloszenia?${params.toString()}`);
+  };
 
   const { suggestions, isLoading } = useLocationSuggestions(inputValue);
 
@@ -56,7 +65,7 @@ export function SearchBar() {
   };
 
   return (
-    <div className="relative w-full mx-auto">
+    <div className="relative w-full mx-auto flex items-center gap-2">
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -108,6 +117,18 @@ export function SearchBar() {
           </Command>
         </PopoverContent>
       </Popover>
+
+      <select
+        value={currentRadius}
+        onChange={(e) => handleRadiusChange(e.target.value)}
+        className="shrink-0 text-xs border border-gray-300 rounded-full px-3 py-2 bg-white text-[var(--text-main)] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--accent-main)]"
+      >
+        {RADIUS_OPTIONS.map((r) => (
+          <option key={r} value={String(r)}>
+            {r} km
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

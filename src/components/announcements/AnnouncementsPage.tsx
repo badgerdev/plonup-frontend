@@ -19,6 +19,7 @@ import { MobileSearchSheet } from "./filters/MobileSearchSheet";
 // icons
 import { ListFilterPlusIcon } from "lucide-react";
 import { SearchBar } from "./filters/SearchBar";
+import { NearbyResults } from "./NearbyResults";
 
 const fetcher = (url: string) =>
   fetch(url).then((res) => {
@@ -32,9 +33,10 @@ export function AnnouncementsPage() {
 
   const searchParams = useSearchParams();
 
-  const category = searchParams.get("category");
+  const category = searchParams.get("category") ?? undefined;
   const location = searchParams.get("location");
   const type = searchParams.get("type");
+  const radius = Number(searchParams.get("radius") ?? 50);
 
   const query = new URLSearchParams();
   if (type) query.set("type", type);
@@ -115,6 +117,14 @@ export function AnnouncementsPage() {
           <div className="text-center text-[var(--muted-foreground)] mt-6">
             Brak ogłoszeń w tej chwili.
           </div>
+        )}
+
+        {location && (
+          <NearbyResults
+            city={location.split(",")[0]}
+            radiusKm={radius}
+            category={category}
+          />
         )}
       </div>
 
